@@ -1,1 +1,1 @@
-Dynosaur game clone via learning Phaser3
+Dynosaur game clone and learning Phaser3
