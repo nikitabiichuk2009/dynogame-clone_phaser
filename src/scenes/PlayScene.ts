@@ -11,21 +11,29 @@ class PlayScene extends GameScene {
   spawnTime: number = 0;
   gameSpeed: number = 7;
   score: number = 0;
-  scoreInterval: number = 100;
+  scoreInterval: number = 200;
   scoreDeltaTime: number = 0;
   scoreText: Phaser.GameObjects.Text;
+  highestText: Phaser.GameObjects.Text;
   obstacles: Phaser.Physics.Arcade.Group;
   gameOverText: Phaser.GameObjects.Image;
   restartText: Phaser.GameObjects.Image;
   clouds: Phaser.GameObjects.Group;
   gameOverContainer: Phaser.GameObjects.Container;
+  gameSpeedModifier: number = 1;
+  highScore: number = 0;
+  progressSound: Phaser.Sound.HTML5AudioSound;
 
   constructor() {
     super("PlayScene");
   }
 
   create() {
+    this.highScore = Number(localStorage.getItem("highScore")) || 0;
     this.createEnvironment();
+    this.progressSound = this.sound.add("progress", {
+      volume: 0.3,
+    }) as Phaser.Sound.HTML5AudioSound;
     this.createPlayer();
     this.createScore();
     this.createObstacles();
@@ -47,14 +55,32 @@ class PlayScene extends GameScene {
     this.scoreDeltaTime += delta;
     if (this.scoreDeltaTime >= this.scoreInterval) {
       this.score++;
+      if (this.score % 100 === 0) {
+        this.gameSpeedModifier += 0.1;
+        this.progressSound.play();
+        this.tweens.add({
+          targets: this.scoreText,
+          duration: 100,
+          repeat: 3,
+          yoyo: true,
+          alpha: 0,
+        });
+      }
+
       this.scoreDeltaTime = 0;
     }
     if (this.spawnTime > this.spawnInterval) {
       this.spawnTime = 0;
       this.spawnObstacle();
     }
-    Phaser.Actions.IncX(this.obstacles.getChildren(), -this.gameSpeed);
-    Phaser.Actions.IncX(this.clouds.getChildren(), -this.gameSpeed);
+    Phaser.Actions.IncX(
+      this.obstacles.getChildren(),
+      -this.gameSpeed * this.gameSpeedModifier
+    );
+    Phaser.Actions.IncX(
+      this.clouds.getChildren(),
+      -this.gameSpeed * this.gameSpeedModifier
+    );
 
     const score = Array.from(String(this.score), Number);
     for (let i = 0; i < 9 - String(this.score).length; i++) {
@@ -83,6 +109,14 @@ class PlayScene extends GameScene {
   createScore() {
     this.scoreText = this.add
       .text(this.gameWidth, 0, "000000000", {
+        fontSize: "30px",
+        color: "#000",
+      })
+      .setOrigin(1, 0)
+      .setAlpha(0);
+    const highScoreString = this.highScore.toString().padStart(9, "0");
+    this.highestText = this.add
+      .text(this.gameWidth - 300, 0, `Highest: ${highScoreString}`, {
         fontSize: "30px",
         color: "#000",
       })
@@ -157,6 +191,7 @@ class PlayScene extends GameScene {
             this.isGameRunning = true;
             this.clouds.setAlpha(1);
             this.scoreText.setAlpha(1);
+            this.highestText.setAlpha(1);
           }
         },
       });
@@ -172,6 +207,9 @@ class PlayScene extends GameScene {
     this.isGameRunning = true;
     this.clouds.setAlpha(1);
     this.scoreText.setAlpha(1);
+    this.highestText.setAlpha(1);
+    this.score = 0;
+    this.gameSpeedModifier = 1;
   }
 
   endGame() {
@@ -183,7 +221,14 @@ class PlayScene extends GameScene {
     this.spawnInterval = 1500;
     this.anims.pauseAll();
     this.gameOverContainer.setAlpha(1);
-    this.score = 0;
+    if (this.score > this.highScore) {
+      this.highScore = this.score;
+      localStorage.setItem("highScore", String(this.highScore));
+    }
+    const highScoreString = this.highScore.toString().padStart(9, "0");
+    this.highestText.setText(`Highest: ${highScoreString}`);
+    this.highestText.setAlpha(1);
+    this.gameSpeedModifier = 1;
   }
 
   spawnObstacle() {

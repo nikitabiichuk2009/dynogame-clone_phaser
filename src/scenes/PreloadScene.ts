@@ -26,6 +26,9 @@ class PreloadScene extends Phaser.Scene {
     for (let i = 0; i < 6; i++) {
       this.load.image(`obstacle-${i + 1}`, `assets/cactuses_${i + 1}.png`);
     }
+    this.load.audio("jump", "assets/jump.m4a");
+    this.load.audio("hit", "assets/hit.m4a");
+    this.load.audio("progress", "assets/reach.m4a");
   }
 
   create() {
